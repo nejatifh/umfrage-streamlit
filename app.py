@@ -18,21 +18,26 @@ rules = [
     "Regel 8: Die Entsorgung abgelaufener Lebensmittel erfolgt in eigener Verantwortung, spätestens bei der Quartalsreinigung."
 ]
 
-responses = []
-
+# Display questions and input widgets
 for i, rule in enumerate(rules):
     st.subheader(rule)
 
-    choice = st.radio(
+    st.radio(
         "Bitte auswählen:",
         ["Beibehalten", "Abschaffen", "Anpassen"],
         key=f"choice_{i}"
     )
 
+    if st.session_state.get(f"choice_{i}") == "Anpassen":
+        st.text_area("Wie soll es angepasst werden?", key=f"comment_{i}")
+
+# Collect responses after rendering all inputs
+responses = []
+for i, rule in enumerate(rules):
+    choice = st.session_state.get(f"choice_{i}", "Beibehalten")
     comment = ""
     if choice == "Anpassen":
-        comment = st.text_area("Wie soll es angepasst werden?", key=f"comment_{i}")
-
+        comment = st.session_state.get(f"comment_{i}", "")
     responses.append({
         "Teilnehmer": participant,
         "Regelnummer": i + 1,
@@ -41,12 +46,13 @@ for i, rule in enumerate(rules):
         "Kommentar": comment
     })
 
-# Disabled Absenden button with message
+# Disabled Absenden button with info
 if st.button("Absenden (Derzeit deaktiviert)"):
     st.info("Bitte benutzen Sie stattdessen die Download-Schaltfläche unten.")
 
 st.write("---")
 
+# Show download button only if name is entered
 if participant.strip():
     df = pd.DataFrame(responses)
 
@@ -64,4 +70,3 @@ if participant.strip():
     st.info("Bitte laden Sie Ihre Antworten als CSV herunter und senden Sie diese per E-Mail an [Faezeh.NejatiHatamian@senfin.berlin.de].")
 else:
     st.warning("Bitte geben Sie Ihren Namen ein, um die Umfrage abzuschließen.")
-# test comment
