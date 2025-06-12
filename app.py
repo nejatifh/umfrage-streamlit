@@ -18,55 +18,62 @@ rules = [
     "Regel 8: Die Entsorgung abgelaufener Lebensmittel erfolgt in eigener Verantwortung, spätestens bei der Quartalsreinigung."
 ]
 
-# Display questions and input widgets
+# Initialize session state defaults
+for i in range(len(rules)):
+    if f"choice_{i}" not in st.session_state:
+        st.session_state[f"choice_{i}"] = "Beibehalten"
+    if f"comment_{i}" not in st.session_state:
+        st.session_state[f"comment_{i}"] = ""
+
+# Display questions and inputs
 for i, rule in enumerate(rules):
     st.subheader(rule)
 
-    st.radio(
+    choice = st.radio(
         "Bitte auswählen:",
         ["Beibehalten", "Abschaffen", "Anpassen"],
+        index=["Beibehalten", "Abschaffen", "Anpassen"].index(st.session_state[f"choice_{i}"]),
         key=f"choice_{i}"
     )
 
-    if st.session_state.get(f"choice_{i}") == "Anpassen":
-        st.text_area("Wie soll es angepasst werden?", key=f"comment_{i}")
-
-# Collect responses after rendering all inputs
-responses = []
-for i, rule in enumerate(rules):
-    choice = st.session_state.get(f"choice_{i}", "Beibehalten")
-    comment = ""
     if choice == "Anpassen":
-        comment = st.session_state.get(f"comment_{i}", "")
-    responses.append({
-        "Teilnehmer": participant,
-        "Regelnummer": i + 1,
-        "Regel": rule,
-        "Entscheidung": choice,
-        "Kommentar": comment
-    })
+        comment = st.text_area("Wie soll es angepasst werden?", value=st.session_state[f"comment_{i}"], key=f"comment_{i}")
+    else:
+        # Clear comment if not Anpassung
+        st.session_state[f"comment_{i}"] = ""
 
-# Disabled Absenden button with info
+# Disabled submit button with message
 if st.button("Absenden (Derzeit deaktiviert)"):
     st.info("Bitte benutzen Sie stattdessen die Download-Schaltfläche unten.")
 
 st.write("---")
 
-# Show download button only if name is entered
+# Show download button only if participant entered
 if participant.strip():
-    df = pd.DataFrame(responses)
+    if st.button("Antworten als CSV herunterladen"):
+        responses = []
+        for i, rule in enumerate(rules):
+            responses.append({
+                "Teilnehmer": participant,
+                "Regelnummer": i + 1,
+                "Regel": rule,
+                "Entscheidung": st.session_state[f"choice_{i}"],
+                "Kommentar": st.session_state[f"comment_{i}"] if st.session_state[f"choice_{i}"] == "Anpassen" else ""
+            })
 
-    csv_buffer = io.StringIO()
-    df.to_csv(csv_buffer, index=False)
-    csv_data = csv_buffer.getvalue()
+        df = pd.DataFrame(responses)
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer, index=False)
+        csv_data = csv_buffer.getvalue()
 
-    st.download_button(
-        label="Antworten als CSV herunterladen",
-        data=csv_data,
-        file_name=f"umfrage_{participant.replace(' ', '_')}.csv",
-        mime="text/csv"
-    )
+        st.download_button(
+            label="Download CSV",
+            data=csv_data,
+            file_name=f"umfrage_{participant.replace(' ', '_')}.csv",
+            mime="text/csv"
+        )
 
-    st.info("Bitte laden Sie Ihre Antworten als CSV herunter und senden Sie diese per E-Mail an [Faezeh.NejatiHatamian@senfin.berlin.de].")
+        st.success("Bitte laden Sie die Datei herunter und senden Sie sie per E-Mail an [Faezeh.NejatiHatamian@senfin.berlin.de].")
 else:
     st.warning("Bitte geben Sie Ihren Namen ein, um die Umfrage abzuschließen.")
+
